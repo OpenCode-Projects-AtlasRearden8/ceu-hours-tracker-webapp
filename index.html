@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="CE Hours Tracker — an education-only, offline, local-first notebook for nursing continuing-education hours. Not medical advice, not licensure advice.">
+<title>CE Hours Tracker — Education Only</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --ink: #26303c;
+    --muted: #5c6b7c;
+    --line: #e6e0d6;
+    --accent: #0f766e;
+    --accent-soft: #d9efec;
+    --warn: #9a3412;
+    --warn-soft: #fdf0e7;
+    --danger: #b91c1c;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; top: 0;
+    background: var(--accent); color: #fff; padding: 0.5rem 1rem; border-radius: 0 0 8px 0; z-index: 10;
+  }
+  .skip-link:focus { left: 0; }
+  header {
+    max-width: 980px; margin: 0 auto; padding: 1.5rem 1rem 0.5rem;
+  }
+  h1 { margin: 0 0 0.15rem; font-size: 1.7rem; color: var(--accent); }
+  .tagline { margin: 0 0 0.75rem; color: var(--muted); }
+  main { max-width: 980px; margin: 0 auto; padding: 0 1rem 2rem; }
+  footer {
+    max-width: 980px; margin: 0 auto; padding: 0 1rem 2rem; color: var(--muted); font-size: 0.9rem;
+  }
+  .disclaimer.banner {
+    background: var(--warn-soft);
+    border: 1px solid #f3d5bd;
+    border-left: 6px solid var(--warn);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.2rem;
+    margin: 1rem 0;
+  }
+  .card h2 { margin: 0 0 0.6rem; font-size: 1.15rem; color: var(--accent); }
+  .small-heading { font-size: 1rem; }
+  .muted { color: var(--muted); font-size: 0.92rem; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.8rem;
+  }
+  .field label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; }
+  .req { color: var(--danger); }
+  input, select, textarea {
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid #cfc8bc;
+    border-radius: 8px;
+    font: inherit;
+    background: #fff;
+    color: var(--ink);
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
+    outline: 3px solid #0f766e;
+    outline-offset: 1px;
+  }
+  textarea { min-height: 3.2rem; resize: vertical; }
+  button {
+    font: inherit;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 0.55rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  button.linklike {
+    background: none; border: none; padding: 0.15rem 0.35rem;
+    color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 0.88rem;
+  }
+  button.linklike.danger { color: var(--danger); }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  fieldset { border: none; padding: 0; margin: 0.6rem 0; }
+  .form-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.7rem; }
+  .form-msg { margin-top: 0.5rem; font-weight: 600; font-size: 0.92rem; min-height: 1.2em; }
+  .form-msg.ok { color: var(--accent); }
+  .form-msg.warn { color: var(--warn); }
+
+  .progress-track {
+    background: var(--accent-soft);
+    border-radius: 999px;
+    height: 22px;
+    overflow: hidden;
+    border: 1px solid #bfe0db;
+  }
+  .progress-fill {
+    background: var(--accent);
+    color: #fff;
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    transition: width 0.4s ease;
+    min-width: 0;
+  }
+  .progress-text { margin: 0.5rem 0 0.15rem; }
+  #nudgeLine { margin: 0.15rem 0; font-weight: 600; font-size: 0.95rem; }
+  .settings-grid label small { display: block; font-weight: 400; color: var(--muted); }
+
+  .log-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.8rem; }
+  .log-actions input[type="search"] { flex: 1 1 220px; width: auto; }
+  .log-actions select { width: auto; }
+
+  .entry {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    margin: 0.55rem 0;
+    background: #fdfcfa;
+  }
+  .entry-top { display: flex; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; align-items: baseline; }
+  .entry-topic { font-weight: 700; }
+  .entry-hours { font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .chip {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: #134e4a;
+    border-radius: 999px;
+    padding: 0.05rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 0.15rem;
+  }
+  .entry-meta { color: var(--muted); font-size: 0.88rem; }
+  .entry-note { font-size: 0.88rem; margin-top: 0.2rem; }
+  .entry-actions { display: flex; gap: 0.25rem; }
+
+  table.cat { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  table.cat td, table.cat th { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); text-align: left; }
+  table.cat td.num, table.cat th.num { text-align: right; white-space: nowrap; }
+
+  ul.disclaimer-list { margin: 0.3rem 0; padding-left: 1.2rem; }
+  ul.disclaimer-list li { margin: 0.35rem 0; }
+  @media (max-width: 560px) {
+    .entry-top { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header>
+  <h1>CE Hours Tracker</h1>
+  <p class="tagline">A personal notebook for nursing continuing-education hours. Education only &mdash; never medical or licensure advice.</p>
+  <div class="disclaimer banner" role="note">
+    <strong>Education only &mdash; not medical, legal, or licensure advice.</strong>
+    This tracker is your own study notebook. It does not verify, approve, or certify any
+    continuing-education hours, and it is not an official hours record. Your state board of
+    nursing or certifying body decides what counts toward renewal. Keep it de-identified:
+    do not enter license numbers, SSNs, patient details, or other personal identifiers.
+  </div>
+</header>
+
+<main id="main">
+
+  <section aria-labelledby="settings-heading" class="card settings-grid">
+    <h2 id="settings-heading">Your Renewal Window</h2>
+    <p class="muted">Set the numbers your board or certifying body published for your renewal period.
+       Editable anytime &mdash; saved automatically on this device. Courses must be dated inside the
+       window below to count toward the progress bar.</p>
+    <div class="grid">
+      <div class="field">
+        <label for="hoursNeeded">Hours needed this window <span class="req">*</span></label>
+        <input type="number" id="hoursNeeded" min="1" max="10000" step="1" value="30" required>
+        <small>Common default: 30 contact hours per 2-year cycle &mdash; but verify with your board.</small>
+      </div>
+      <div class="field">
+        <label for="windowStart">Window start date <span class="req">*</span></label>
+        <input type="date" id="windowStart" required>
+        <small>First day relevant courses count.</small>
+      </div>
+      <div class="field">
+        <label for="windowDeadline">Renewal deadline <span class="req">*</span></label>
+        <input type="date" id="windowDeadline" required>
+        <small>Last day courses may be dated (inclusive).</small>
+      </div>
+    </div>
+    <p id="settingsMsg" class="form-msg" role="status" aria-live="polite"></p>
+  </section>
+
+  <section aria-labelledby="progress-heading" class="card">
+    <h2 id="progress-heading">Renewal-Window Progress</h2>
+    <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+         aria-valuenow="0" aria-label="Percent of required hours logged in the current window" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p class="progress-text"><strong id="progressLabel">0 of 30 hours logged in this window (0%)</strong>
+       <span id="allTimeLabel" class="muted"></span></p>
+    <p id="nudgeLine"></p>
+    <p class="muted">Hours shown are this app's count of your own entries for planning convenience.
+       Each category, provider, and course type still has board-specific rules you must verify.</p>
+  </section>
+
+  <section aria-labelledby="form-heading" class="card">
+    <h2 id="form-heading">Log a Course or Activity</h2>
+    <form id="entryForm" novalidate>
+      <input type="hidden" id="editId" name="editId">
+      <div class="grid">
+        <div class="field">
+          <label for="date">Date completed <span class="req">*</span></label>
+          <input type="date" id="date" name="date" required>
+        </div>
+        <div class="field">
+          <label for="hours">Contact hours <span class="req">*</span></label>
+          <input type="number" id="hours" name="hours" min="0.25" max="40" step="0.25" required>
+        </div>
+        <div class="field">
+          <label for="topic">Topic <span class="req">*</span></label>
+          <input type="text" id="topic" name="topic" maxlength="120" required placeholder="e.g. Stroke recognition (module 2)">
+        </div>
+        <div class="field">
+          <label for="provider">Provider <span class="req">*</span></label>
+          <input type="text" id="provider" name="provider" maxlength="80" required placeholder="e.g. AHA; names allowed here &mdash; no license numbers">
+        </div>
+        <div class="field">
+          <label for="category">Category bucket</label>
+          <select id="category" name="category"></select>
+        </div>
+        <div class="field">
+          <label for="certNote">Certificate note (optional)</label>
+          <textarea id="certNote" name="certNote" maxlength="200" placeholder="e.g. PDF saved in CE folder Feb 2027. Keep license numbers and IDs private."></textarea>
+          <small>Where you filed the certificate. 200 chars max &mdash; no personal identifiers.</small>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" id="saveBtn">Save Entry</button>
+        <button type="button" id="cancelEditBtn" class="secondary" hidden>Cancel Edit</button>
+      </div>
+      <div id="formMsg" class="form-msg" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section aria-labelledby="log-heading" class="card">
+    <h2 id="log-heading">Your Log</h2>
+    <div class="log-actions">
+      <input type="search" id="searchBox" placeholder="Filter by topic, provider, or note&hellip;" aria-label="Filter entries">
+      <label class="muted" for="filterCategory">Category:</label>
+      <select id="filterCategory"><option value="">All categories</option></select>
+      <button type="button" id="csvBtn" class="secondary">Export CSV</button>
+      <button type="button" id="jsonBtn" class="secondary">Export JSON (backup)</button>
+      <label class="file-label muted" for="importFile">Import JSON backup</label>
+      <input type="file" id="importFile" accept="application/json,.json" style="max-width:180px">
+    </div>
+    <div id="entriesList"></div>
+    <p id="emptyMsg" class="muted">No entries yet. Save your first course above &mdash; everything stays on this device.</p>
+    <p id="countMsg" class="muted"></p>
+  </section>
+
+  <section aria-labelledby="summary-heading" class="card">
+    <h2 id="summary-heading">Printable De-Identified Summary</h2>
+    <p class="muted">Opens a one-page summary of this window: totals and category buckets only &mdash;
+       no topics, providers, certificate notes, or personal identifiers. Fill in your name by hand
+       after printing if you need to.</p>
+    <button type="button" id="printBtn">Open Printable Summary</button>
+  </section>
+
+  <section class="card disclaimer" aria-labelledby="fineprint-heading">
+    <h2 id="fineprint-heading" class="small-heading">Important Notes & Disclaimers</h2>
+    <ul class="disclaimer-list">
+      <li><strong>Education only.</strong> This is a personal tracker, not a medical, legal, or
+          licensure tool, and never medical or licensure advice.</li>
+      <li><strong>Not an official record.</strong> Your state board of nursing, certifying body,
+          or employer keeps official records and decides what counts. Requirements, hour minimums,
+          and eligible course categories vary by state and credential &mdash; verify everything
+          independently before relying on it.</li>
+      <li><strong>No personal data, please.</strong> Topic and provider names are normal course
+          details, but keep license numbers, SSNs, patient information, and identifiers out of
+          every field. The printable summary is de-identified by design.</li>
+      <li><strong>Local-only.</strong> Everything is stored in this browser's localStorage on this
+          device. No servers, no accounts, no tracking. Clearing browser data erases your log &mdash;
+          use Export JSON (backup) regularly.</li>
+      <li><strong>Zero dependencies.</strong> Plain HTML/JS/CSS in a single file; it works offline
+          from file://.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <p>CE Hours Tracker &middot; by <a href="https://dylanasdale.github.io" rel="noopener">Asdale Dynamics, LLC</a>
+     &middot; MIT License &middot; Education only, never medical or licensure advice.</p>
+</footer>
+
+<noscript>
+  <p style="max-width:980px;margin:1rem auto;padding:1rem;background:#fdf0e7;border-radius:12px;">
+    This app needs JavaScript to run. It is a single-file, offline tool &mdash; enable JavaScript
+    and reload. Nothing is ever sent anywhere.
+  </p>
+</noscript>
+
+<script>
+"use strict";
+/* CEU-LOGIC-START */
+const CEU = {};
+
+CEU.CATEGORIES = [
+  "Direct patient care / clinical",
+  "Pharmacology",
+  "Patient safety & infection control",
+  "Ethics, law & professional issues",
+  "Communication & patient education",
+  "Professional development",
+  "Technology & informatics",
+  "Other"
+];
+
+CEU.HOURS_NEEDED_DEFAULT = 30;
+CEU.HOURS_MAX_PER_ENTRY = 40;
+CEU.TOPIC_MAX = 120;
+CEU.PROVIDER_MAX = 80;
+CEU.NOTE_MAX = 200;
+
+CEU.makeId = function () {
+  return "ceu-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+};
+
+CEU.localIsoDate = function (d) {
+  const dd = (d instanceof Date) ? d : new Date();
+  const y = dd.getFullYear();
+  const m = String(dd.getMonth() + 1).padStart(2, "0");
+  const day = String(dd.getDate()).padStart(2, "0");
+  return y + "-" + m + "-" + day;
+};
+
+CEU.dateParts = function (str) {
+  const s = String(str || "").trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return { y: y, m: mo, d: d };
+};
+
+/* Whole calendar-day difference; noon (UTC) anchors avoid DST drift. */
+CEU.daysBetween = function (fromStr, toStr) {
+  const a = CEU.dateParts(fromStr);
+  const b = CEU.dateParts(toStr);
+  if (!a || !b) return null;
+  const A = Date.UTC(a.y, a.m - 1, a.d, 12, 0, 0);
+  const B = Date.UTC(b.y, b.m - 1, b.d, 12, 0, 0);
+  return Math.round((B - A) / 86400000);
+};
+
+CEU.defaultSettings = function (todayStr) {
+  const today = CEU.dateParts(todayStr) ? todayStr : CEU.localIsoDate(new Date());
+  const y = CEU.dateParts(today).y;
+  return {
+    hoursNeeded: CEU.HOURS_NEEDED_DEFAULT,
+    windowStart: y + "-01-01",
+    windowDeadline: (y + 2) + "-12-31"
+  };
+};
+
+CEU.validateSettings = function (s) {
+  const o = s || {};
+  const needed = Math.round(Number(o.hoursNeeded));
+  if (!isFinite(needed) || needed < 1 || needed > 10000) {
+    return { ok: false, error: "Hours needed must be a whole number between 1 and 10000." };
+  }
+  const start = String(o.windowStart || "").trim();
+  const deadline = String(o.windowDeadline || "").trim();
+  if (!CEU.dateParts(start)) return { ok: false, error: "Pick a valid window start date." };
+  if (!CEU.dateParts(deadline)) return { ok: false, error: "Pick a valid renewal deadline." };
+  if (CEU.daysBetween(start, deadline) < 0) {
+    return { ok: false, error: "The window start must be on or before the renewal deadline." };
+  }
+  return {
+    ok: true,
+    value: { hoursNeeded: needed, windowStart: start, windowDeadline: deadline }
+  };
+};
+
+CEU.validateEntry = function (entry) {
+  if (!entry || typeof entry !== "object") {
+    return { ok: false, error: "Entry is required." };
+  }
+  const date = String(entry.date || "").trim();
+  if (!CEU.dateParts(date)) {
+    return { ok: false, error: "Please pick a valid date." };
+  }
+  const topic = String(entry.topic || "").trim();
+  if (!topic) return { ok: false, error: "Topic is required." };
+  if (topic.length > CEU.TOPIC_MAX) {
+    return { ok: false, error: "Topic is " + CEU.TOPIC_MAX + " characters max." };
+  }
+  const provider = String(entry.provider || "").trim();
+  if (!provider) return { ok: false, error: "Provider is required." };
+  if (provider.length > CEU.PROVIDER_MAX) {
+    return { ok: false, error: "Provider is " + CEU.PROVIDER_MAX + " characters max." };
+  }
+  let hours = Number(entry.hours);
+  if (!isFinite(hours)) return { ok: false, error: "Hours must be a number." };
+  hours = Math.round(hours * 100) / 100;
+  if (hours <= 0) return { ok: false, error: "Hours must be greater than 0." };
+  if (hours > CEU.HOURS_MAX_PER_ENTRY) {
+    return { ok: false, error: "Over " + CEU.HOURS_MAX_PER_ENTRY + " hours in one course? Check that number." };
+  }
+  const category = CEU.CATEGORIES.indexOf(String(entry.category || "").trim()) >= 0
+    ? String(entry.category).trim()
+    : "Other";
+  const certNote = String(entry.certNote || "").trim();
+  if (certNote.length > CEU.NOTE_MAX) {
+    return { ok: false, error: "Certificate note is " + CEU.NOTE_MAX + " characters max." };
+  }
+  return {
+    ok: true,
+    value: {
+      id: entry.id || CEU.makeId(),
+      date: date,
+      topic: topic,
+      provider: provider,
+      hours: hours,
+      category: category,
+      certNote: certNote,
+      createdAt: entry.createdAt || new Date().toISOString()
+    }
+  };
+};
+
+CEU.totalHours = function (entries) {
+  if (!Array.isArray(entries)) return 0;
+  const sum = entries.reduce(function (acc, e) { return acc + (Number(e.hours) || 0); }, 0);
+  return Math.round(sum * 100) / 100;
+};
+
+CEU.hoursByCategory = function (entries) {
+  const byCat = {};
+  (entries || []).forEach(function (e) {
+    const c = String(e.category || "Other");
+    byCat[c] = Math.round(((byCat[c] || 0) + (Number(e.hours) || 0)) * 100) / 100;
+  });
+  return byCat;
+};
+
+CEU.hoursInWindow = function (entries, windowStart, windowDeadline) {
+  const a = CEU.dateParts(windowStart);
+  const b = CEU.dateParts(windowDeadline);
+  if (!a || !b) return 0;
+  const s = windowStart, d = windowDeadline;
+  const inWin = (entries || []).filter(function (e) {
+    const date = String(e && e.date || "");
+    return !!CEU.dateParts(date) && date >= s && date <= d;
+  });
+  return CEU.totalHours(inWin);
+};
+
+CEU.progressPercent = function (inWindowEntries, hoursNeeded) {
+  const needed = Number(hoursNeeded) || CEU.HOURS_NEEDED_DEFAULT;
+  const pct = (CEU.totalHours(inWindowEntries) / needed) * 100;
+  if (!isFinite(pct) || pct < 0) return 0;
+  return Math.min(100, Math.round(pct * 10) / 10);
+};
+
+CEU.hoursRemaining = function (inWindowEntries, hoursNeeded) {
+  const needed = Number(hoursNeeded) || CEU.HOURS_NEEDED_DEFAULT;
+  const remaining = needed - CEU.totalHours(inWindowEntries);
+  return Math.max(0, Math.round(remaining * 100) / 100);
+};
+
+/*
+  Deadline nudge math. Deterministic: pass today as "YYYY-MM-DD".
+  status: "invalid" | "expired" | "met" | "due-today" | "active"
+*/
+CEU.deadlineNudge = function (inWindowEntries, opts) {
+  const o = opts || {};
+  const needed = Number(o.hoursNeeded) || CEU.HOURS_NEEDED_DEFAULT;
+  const days = CEU.daysBetween(o.today, o.windowDeadline);
+  const inWindowHours = CEU.hoursInWindow(inWindowEntries, o.windowStart, o.windowDeadline);
+  const remaining = Math.max(0, Math.round((needed - inWindowHours) * 100) / 100);
+  const result = {
+    inWindowHours: inWindowHours,
+    hoursNeeded: needed,
+    hoursRemaining: remaining,
+    daysRemaining: days,
+    perDay: null,
+    perWeek: null,
+    perMonth: null,
+    status: "invalid",
+    deadlineDate: o.windowDeadline || ""
+  };
+  if (days === null) return result;
+  if (days < 0) {
+    result.status = "expired";
+    return result;
+  }
+  if (remaining <= 0) {
+    result.status = "met";
+    return result;
+  }
+  if (days === 0) {
+    result.status = "due-today";
+    return result;
+  }
+  result.status = "active";
+  result.perDay = Math.round((remaining / days) * 100) / 100;
+  result.perWeek = Math.round((remaining / days * 7) * 100) / 100;
+  result.perMonth = Math.round((remaining / (days / 30.44)) * 100) / 100;
+  return result;
+};
+
+CEU.formatHours = function (n) {
+  const num = Number(n) || 0;
+  return (Math.round(num * 100) / 100) % 1 === 0 ? String(num) : num.toFixed(2).replace(/0$/, "");
+};
+
+CEU.csvField = function (value) {
+  const s = String(value === undefined || value === null ? "" : value);
+  if (/[",\r\n]/.test(s)) {
+    return "\"" + s.replace(/\r\n|\r|\n/g, "\r\n").replace(/"/g, '""') + "\"";
+  }
+  return s;
+};
+
+CEU.toCSV = function (entries) {
+  const header = ["Date", "Topic", "Provider", "Hours", "Category", "Certificate Note"];
+  const list = (Array.isArray(entries) ? entries : [])
+    .slice()
+    .sort(function (a, b) { return String(a.date) < String(b.date) ? -1 : 1; });
+  const rows = list.map(function (e) {
+    return [
+      CEU.csvField(e.date),
+      CEU.csvField(e.topic),
+      CEU.csvField(e.provider),
+      CEU.csvField(CEU.formatHours(e.hours)),
+      CEU.csvField(e.category),
+      CEU.csvField(e.certNote)
+    ].join(",");
+  });
+  return header.join(",") + "\r\n" + rows.join("\r\n");
+};
+
+/* De-identified printable summary: placeholders only, entry details never included. */
+CEU.summaryData = function (inWindowEntries, opts) {
+  const o = opts || {};
+  const needed = Number(o.hoursNeeded) || CEU.HOURS_NEEDED_DEFAULT;
+  const count = Array.isArray(inWindowEntries) ? inWindowEntries.length : 0;
+  return {
+    nameLine: "[Your Name]",
+    licenseLine: "[License / jurisdiction \u2014 intentionally left blank]",
+    windowStart: o.windowStart || "",
+    windowDeadline: o.windowDeadline || "",
+    range: (o.windowStart || "?") + " through " + (o.windowDeadline || "?"),
+    totalHours: CEU.totalHours(inWindowEntries),
+    hoursNeeded: needed,
+    percent: CEU.progressPercent(inWindowEntries, needed),
+    hoursRemaining: CEU.hoursRemaining(inWindowEntries, needed),
+    hoursByCategory: CEU.hoursByCategory(inWindowEntries),
+    entryCount: count,
+    disclaimer: "Education record only \u2014 not medical, legal, or licensure advice. Totals are this app's count of self-reported entries; the state board of nursing or certifying body is the sole authority on what counts toward renewal. No personal identifiers appear on this page."
+  };
+};
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = CEU;
+} else {
+  window.CEU = CEU;
+}
+/* CEU-LOGIC-END */
+
+(function () {
+  const ENTRIES_KEY = "ceu-tracker.entries.v1";
+  const SETTINGS_KEY = "ceu-tracker.settings.v1";
+
+  const $ = function (id) { return document.getElementById(id); };
+
+  let entries = [];
+  let settings = CEU.defaultSettings(CEU.localIsoDate(new Date()));
+  let editingId = null;
+  let storageOk = true;
+
+  function loadState() {
+    let raw = null;
+    try {
+      raw = localStorage.getItem(ENTRIES_KEY);
+    } catch (e) {
+      storageOk = false;
+    }
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          entries = parsed.filter(function (e) {
+            return e && typeof e === "object";
+          });
+        }
+      } catch (e) {}
+    }
+    let rawS = null;
+    try {
+      rawS = localStorage.getItem(SETTINGS_KEY);
+    } catch (e) {
+      storageOk = false;
+    }
+    if (rawS) {
+      try {
+        const parsedS = JSON.parse(rawS);
+        const v = CEU.validateSettings(parsedS);
+        if (v.ok) settings = v.value;
+      } catch (e) {}
+    }
+  }
+
+  function saveEntries() {
+    try {
+      localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+    } catch (e) {
+      showFormMsg("Could not save to localStorage (" + (e && e.name ? e.name : "error") +
+        "). Export a backup so nothing is lost.", "warn");
+    }
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+      showSettingsMsg("Could not save settings to localStorage.", "warn");
+    }
+  }
+
+  function showMsg(el, text, cls) {
+    el.className = "form-msg " + (cls || "");
+    el.textContent = text;
+  }
+  function showFormMsg(text, cls) { showMsg($("formMsg"), text, cls); }
+  function showSettingsMsg(text, cls) { showMsg($("settingsMsg"), text, cls); }
+
+  function inWindowEntries() {
+    const list = entries.filter(function (e) {
+      const date = String(e.date || "");
+      return date >= settings.windowStart && date <= settings.windowDeadline;
+    });
+    return list;
+  }
+
+  function nudgeLineText(n, todayStr) {
+    const prettyBy = prettyDate(n.deadlineDate);
+    if (n.status === "invalid") {
+      return "Check your renewal-window dates in the settings above.";
+    }
+    if (n.status === "expired") {
+      return "The deadline " + prettyBy + " has passed. Update your renewal window in the settings above to roll into your new period.";
+    }
+    if (n.status === "met") {
+      return "You've logged " + CEU.formatHours(n.inWindowHours) + " of " + CEU.formatHours(n.hoursNeeded) +
+        " hours in this window \u2014 this tracker's math says the count is met. Your board still makes the official call.";
+    }
+    if (n.status === "due-today") {
+      return n.deadlineDate + " is today. You were " + CEU.formatHours(n.hoursRemaining) +
+        " hours short by this tracker \u2014 if your period already renewed, update the settings above.";
+    }
+    return CEU.formatHours(n.hoursRemaining) + " hours to go by " + prettyBy + " (" + n.daysRemaining +
+      " days left). Paces: " + CEU.formatHours(n.perDay) + " hr/day \u00b7 " +
+      CEU.formatHours(n.perWeek) + " hr/week \u00b7 " + CEU.formatHours(n.perMonth) + " hr/month.";
+  }
+
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function prettyDate(iso) {
+    const p = CEU.dateParts(iso);
+    if (!p) return iso || "?";
+    return MONTHS[p.m - 1] + " " + p.d + ", " + p.y;
+  }
+
+  function renderSettings() {
+    $("hoursNeeded").value = settings.hoursNeeded;
+    $("windowStart").value = settings.windowStart;
+    $("windowDeadline").value = settings.windowDeadline;
+  }
+
+  function renderProgress() {
+    const todayStr = CEU.localIsoDate(new Date());
+    const list = inWindowEntries();
+    const pct = CEU.progressPercent(list, settings.hoursNeeded);
+    const total = CEU.totalHours(list);
+    $("progressFill").style.width = pct + "%";
+    if (pct >= 45) {
+      $("progressFill").textContent = pct + "%";
+    } else {
+      $("progressFill").textContent = "";
+    }
+    const bar = $("progressBar");
+    bar.setAttribute("aria-valuenow", String(pct));
+    $("progressLabel").textContent = CEU.formatHours(total) + " of " + CEU.formatHours(settings.hoursNeeded) +
+      " hours logged in this window (" + pct + "%)";
+    const allTime = CEU.totalHours(entries);
+    $("allTimeLabel").textContent = allTime > 0
+      ? " \u2014 " + CEU.formatHours(allTime) + " hours all-time, all periods."
+      : "";
+    const n = CEU.deadlineNudge(entries, {
+      today: todayStr,
+      windowStart: settings.windowStart,
+      windowDeadline: settings.windowDeadline,
+      hoursNeeded: settings.hoursNeeded
+    });
+    $("nudgeLine").textContent = nudgeLineText(n, todayStr);
+  }
+
+  function renderCategories() {
+    const sel = $("category");
+    sel.innerHTML = "";
+    CEU.CATEGORIES.forEach(function (c) {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      sel.appendChild(opt);
+    });
+    const filter = $("filterCategory");
+    filter.innerHTML = "";
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = "All categories";
+    filter.appendChild(allOpt);
+    CEU.CATEGORIES.forEach(function (c) {
+      const opt = document.createElement("option");
+      opt.value = c;
+      opt.textContent = c;
+      filter.appendChild(opt);
+    });
+  }
+
+  function filteredEntries() {
+    const q = $("searchBox").value.trim().toLowerCase();
+    const cat = $("filterCategory").value;
+    return entries.filter(function (e) {
+      if (cat && e.category !== cat) return false;
+      if (!q) return true;
+      const hay = [e.topic, e.provider, e.certNote].join(" ").toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+
+  function renderList() {
+    const listEl = $("entriesList");
+    listEl.innerHTML = "";
+    const list = filteredEntries().sort(function (a, b) {
+      if (String(a.date) !== String(b.date)) {
+        return String(a.date) < String(b.date) ? 1 : -1;
+      }
+      return String(a.createdAt || "") < String(b.createdAt || "") ? 1 : -1;
+    });
+    const shownInWindow = list.filter(function (e) {
+      const d = String(e.date || "");
+      return d >= settings.windowStart && d <= settings.windowDeadline;
+    }).length;
+    if (list.length === 0) {
+      $("emptyMsg").hidden = false;
+      $("emptyMsg").textContent = entries.length === 0
+        ? "No entries yet. Save your first course above \u2014 everything stays on this device."
+        : "No entries match this filter.";
+    } else {
+      $("emptyMsg").hidden = true;
+    }
+    list.forEach(function (e) {
+      const div = document.createElement("div");
+      div.className = "entry";
+
+      const top = document.createElement("div");
+      top.className = "entry-top";
+      const left = document.createElement("div");
+      const topicEl = document.createElement("div");
+      topicEl.className = "entry-topic";
+      topicEl.textContent = e.topic;
+      const meta = document.createElement("div");
+      meta.className = "entry-meta";
+      meta.textContent = prettyDate(e.date) + " \u00b7 " + e.provider;
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = e.category;
+      left.appendChild(topicEl);
+      left.appendChild(meta);
+      left.appendChild(chip);
+
+      const right = document.createElement("div");
+      right.className = "entry-actions";
+      const hoursEl = document.createElement("span");
+      hoursEl.className = "entry-hours";
+      hoursEl.textContent = CEU.formatHours(e.hours) + " hr";
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "linklike";
+      editBtn.textContent = "Edit";
+      editBtn.setAttribute("aria-label", "Edit entry " + e.topic);
+      editBtn.addEventListener("click", function () { startEdit(e.id); });
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "linklike danger";
+      delBtn.textContent = "Delete";
+      delBtn.setAttribute("aria-label", "Delete entry " + e.topic);
+      delBtn.addEventListener("click", function () { deleteEntry(e.id); });
+      right.appendChild(hoursEl);
+      right.appendChild(editBtn);
+      right.appendChild(delBtn);
+
+      top.appendChild(left);
+      top.appendChild(right);
+      div.appendChild(top);
+
+      if (e.certNote) {
+        const note = document.createElement("div");
+        note.className = "entry-note muted";
+        note.textContent = "Certificate: " + e.certNote;
+        div.appendChild(note);
+      }
+      if (String(e.date || "") < settings.windowStart || String(e.date || "") > settings.windowDeadline) {
+        const out = document.createElement("div");
+        out.className = "entry-note";
+        out.style.color = "#9a3412";
+        out.textContent = "Outside the current renewal window \u2014 not counted toward the bar.";
+        div.appendChild(out);
+      }
+      listEl.appendChild(div);
+    });
+    const shown = list.length;
+    $("countMsg").textContent = shown > 0
+      ? "Showing " + shown + " " + (shown === 1 ? "entry" : "entries") + " (" + shownInWindow + " inside the renewal window, " + (shown - shownInWindow) + " outside)."
+      : "";
+  }
+
+  function render() {
+    renderSettings();
+    renderProgress();
+    renderList();
+  }
+
+  function startEdit(id) {
+    const e = entries.find(function (x) { return x.id === id; });
+    if (!e) return;
+    editingId = id;
+    $("editId").value = id;
+    $("date").value = e.date;
+    $("hours").value = e.hours;
+    $("topic").value = e.topic;
+    $("provider").value = e.provider;
+    $("category").value = e.category;
+    $("certNote").value = e.certNote || "";
+    $("saveBtn").textContent = "Update Entry";
+    $("cancelEditBtn").hidden = false;
+    showFormMsg("Editing \u2014 save to update this entry.", "ok");
+    $("entryForm").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetForm() {
+    editingId = null;
+    $("entryForm").reset();
+    $("editId").value = "";
+    $("saveBtn").textContent = "Save Entry";
+    $("cancelEditBtn").hidden = true;
+    renderSettings();
+  }
+
+  function deleteEntry(id) {
+    const e = entries.find(function (x) { return x.id === id; });
+    const label = e ? '"' + e.topic + '" (' + CEU.formatHours(e.hours) + ' hr)' : "this entry";
+    if (!window.confirm("Delete " + label + "? This cannot be undone.")) return;
+    entries = entries.filter(function (x) { return x.id !== id; });
+    if (editingId === id) resetForm();
+    saveEntries();
+    render();
+    showFormMsg("Entry deleted. (Backups: use Export JSON regularly \u2014 deletes can't be undone.)", "warn");
+  }
+
+  function submitEntry(ev) {
+    ev.preventDefault();
+    const candidate = {
+      id: editingId || undefined,
+      createdAt: editingId ? (entries.find(function (x) { return x.id === editingId; }) || {}).createdAt : undefined,
+      date: $("date").value,
+      topic: $("topic").value,
+      provider: $("provider").value,
+      hours: $("hours").value,
+      category: $("category").value,
+      certNote: $("certNote").value
+    };
+    const v = CEU.validateEntry(candidate);
+    if (!v.ok) {
+      showFormMsg(v.error, "warn");
+      return;
+    }
+    if (editingId) {
+      const idx = entries.findIndex(function (x) { return x.id === editingId; });
+      if (idx >= 0) {
+        entries[idx] = v.value;
+        showFormMsg("Entry updated.", "ok");
+      } else {
+        entries.push(v.value);
+        showFormMsg("Entry added.", "ok");
+      }
+    } else {
+      entries.push(v.value);
+      showFormMsg("Entry saved. Everything stays on this device.", "ok");
+    }
+    resetForm();
+    saveEntries();
+    render();
+  }
+
+  function changeSettings() {
+    const s = CEU.validateSettings({
+      hoursNeeded: $("hoursNeeded").value,
+      windowStart: $("windowStart").value,
+      windowDeadline: $("windowDeadline").value
+    });
+    if (!s.ok) {
+      showSettingsMsg(s.error, "warn");
+      return;
+    }
+    settings = s.value;
+    showSettingsMsg("Settings saved on this device. Totals updated.", "ok");
+    saveSettings();
+    render();
+  }
+
+  function downloadFile(name, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function exportCSV() {
+    if (entries.length === 0) {
+      showFormMsg("Nothing to export yet \u2014 save your first course.", "warn");
+      return;
+    }
+    const todayStr = CEU.localIsoDate(new Date());
+    downloadFile("ce-hours-" + todayStr + ".csv", "\uFEFF" + CEU.toCSV(entries), "text/csv;charset=utf-8");
+    showFormMsg("CSV exported to your downloads. It contains your own entries only.", "ok");
+  }
+
+  function exportJSON() {
+    const payload = {
+      app: "ceu-hours-tracker",
+      version: 1,
+      exported: new Date().toISOString(),
+      settings: settings,
+      entries: entries
+    };
+    const todayStr = CEU.localIsoDate(new Date());
+    downloadFile("ce-hours-backup-" + todayStr + ".json", JSON.stringify(payload, null, 2), "application/json");
+    showFormMsg("JSON backup exported to your downloads.", "ok");
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      let data = null;
+      try {
+        data = JSON.parse(String(reader.result));
+      } catch (e) {
+        showFormMsg("That file isn't valid JSON \u2014 nothing was changed.", "warn");
+        return;
+      }
+      const list = Array.isArray(data) ? data : data.entries;
+      if (!Array.isArray(list)) {
+        showFormMsg("No entries found in that file \u2014 nothing was changed.", "warn");
+        return;
+      }
+      const s = Array.isArray(data) ? settings : CEU.validateSettings(data.settings);
+      if (!s.ok) {
+        showFormMsg("Settings in the backup are invalid \u2014 nothing was changed.", "warn");
+        return;
+      }
+      const valid = [];
+      const bad = [];
+      list.forEach(function (e) {
+        const v = CEU.validateEntry(e);
+        if (v.ok) {
+          if (!valid.some(function (x) { return x.id === v.value.id; })) valid.push(v.value);
+        } else {
+          bad.push(e);
+        }
+      });
+      const ok = window.confirm("Replace your current log (" + entries.length + " entries) with " +
+        valid.length + " entries from this backup?" + (bad.length ? "\n\n" + bad.length + " invalid entries will be skipped." : ""));
+      if (!ok) {
+        showFormMsg("Import cancelled \u2014 nothing was changed.", "ok");
+        return;
+      }
+      entries = valid;
+      settings = s.value;
+      saveEntries();
+      saveSettings();
+      render();
+      showFormMsg("Imported " + valid.length + " entries. Backup replaced the log." +
+        (bad.length ? " " + bad.length + " invalid rows were skipped." : ""), "ok");
+    };
+    reader.onerror = function () {
+      showFormMsg("Could not read that file \u2014 nothing was changed.", "warn");
+    };
+    reader.readAsText(file);
+  }
+
+  function printSummary() {
+    const list = inWindowEntries();
+    const s = CEU.summaryData(list, settings);
+    const catRows = CEU.CATEGORIES.map(function (c) {
+      const h = s.hoursByCategory[c];
+      if (!h) return "";
+      return "<tr><td>" + escapeHTML(c) + "</td><td class=\"num\">" + CEU.formatHours(h) + " hr</td></tr>";
+    }).join("");
+    const doc = [
+      "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>De-identified CE Hours Summary</title>",
+      "<style>",
+      "body{font-family:Georgia,'Times New Roman',serif;color:#1f2937;max-width:7in;margin:0 auto;padding:24px;}",
+      "h1{font-size:1.3rem;margin:0 0 2px;} h2{font-size:1rem;margin:1.2rem 0 4px;border-bottom:1px solid #999;padding-bottom:2px;}",
+      "table{border-collapse:collapse;width:100%;font-size:0.95rem;} td{padding:3px 4px;border-bottom:1px dotted #bbb;} td.num{text-align:right;}",
+      ".muted{color:#555;font-size:0.9rem;} .fill{border-bottom:1px solid #555;display:inline-block;min-width:180px;}",
+      ".disclaimer{background:#fdf0e7;border:1px solid #e0a480;border-left:6px solid #9a3412;padding:10px;font-size:0.85rem;margin-top:16px;}",
+      "button{margin-top:10px;padding:8px 16px;font-size:1rem;}",
+      "@media print{button{display:none;}}",
+      "</style></head><body>",
+      "<h1>Continuing-Education Hours Summary</h1>",
+      "<p class=\"muted\">De-identified &mdash; placeholders only, no personal identifiers. Prepared " +
+        prettyDate(CEU.localIsoDate(new Date())) + ".</p>",
+      "<h2>Who this is for</h2>",
+      "<p><strong>Name:</strong> " + escapeHTML(s.nameLine) + " <span class=\"muted\">(write by hand, not in the app)</span></p>",
+      "<p><strong>License / jurisdiction:</strong> " + escapeHTML(s.licenseLine) + "</p>",
+      "<h2>Renewal window</h2>",
+      "<p>" + prettyDate(s.windowStart) + " through " + prettyDate(s.windowDeadline) + "</p>",
+      "<h2>Hours</h2>",
+      "<table>",
+      "<tr><td>Total hours logged in window (self-reported)</td><td class=\"num\"><strong>" + CEU.formatHours(s.totalHours) + " hr</strong></td></tr>",
+      "<tr><td>Target used by this tracker</td><td class=\"num\">" + CEU.formatHours(s.hoursNeeded) + " hr</td></tr>",
+      "<tr><td>Remaining</td><td class=\"num\">" + CEU.formatHours(s.hoursRemaining) + " hr</td></tr>",
+      "<tr><td>Entries in window (details intentionally excluded)</td><td class=\"num\">" + s.entryCount + "</td></tr>",
+      "</table>",
+      "<h2>By category</h2>",
+      "<table>" + (catRows || "<tr><td class=\"muted\">No hours logged in this window yet.</td></tr>") + "</table>",
+      "<div class=\"disclaimer\"><strong>Disclaimer.</strong> " + escapeHTML(s.disclaimer) + "</div>",
+      "<button onclick=\"window.print()\">Print this page</button>",
+      "</body></html>"
+    ].join("\n");
+    const w = window.open("", "_blank", "width=760,height=880");
+    if (!w) {
+      showFormMsg("The summary popup was blocked. Allow popups for this file and try again.", "warn");
+      return;
+    }
+    w.document.write(doc);
+    w.document.close();
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "\u0026amp;", "<": "\u0026lt;", ">": "\u0026gt;", '"': "\u0026quot;", "'": "\u0026#39;" }[c];
+    });
+  }
+
+  function wire() {
+    $("entryForm").addEventListener("submit", submitEntry);
+    $("cancelEditBtn").addEventListener("click", function () {
+      resetForm();
+      showFormMsg("Edit cancelled.", "ok");
+    });
+    $("hoursNeeded").addEventListener("change", changeSettings);
+    $("windowStart").addEventListener("change", changeSettings);
+    $("windowDeadline").addEventListener("change", changeSettings);
+    $("searchBox").addEventListener("input", renderList);
+    $("filterCategory").addEventListener("change", renderList);
+    $("csvBtn").addEventListener("click", exportCSV);
+    $("jsonBtn").addEventListener("click", exportJSON);
+    $("importFile").addEventListener("change", function (ev) {
+      if (ev.target.files && ev.target.files[0]) importJSON(ev.target.files[0]);
+      ev.target.value = "";
+    });
+    $("printBtn").addEventListener("click", printSummary);
+  }
+
+  function boot() {
+    renderCategories();
+    loadState();
+    wire();
+    render();
+    if (!storageOk) {
+      showSettingsMsg("localStorage is unavailable (private mode or blocked). Your log works this session but won't persist \u2014 export a backup before closing.", "warn");
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>
