@@ -1,8 +1,9 @@
-node_modules/
+*.pyc
+*.tmp
 .env
 .env.*
 .venv/
-__pycache__/
-*.pyc
 /dist
-*.tmp
+__pycache__/
+dist/*.tmp
+node_modules/
